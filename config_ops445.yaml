@@ -1,0 +1,75 @@
+---
+- hosts: vmlab
+  become: yes
+  vars:
+    seneca_id: kchen129
+
+  tasks:
+    - name: Ensure EPEL repo is installed
+      yum:
+        name: epel-release
+        state: present
+
+    - name: Ensure Apache (httpd) is installed and up to date
+      yum:
+        name: httpd
+        state: latest
+
+    - name: Remove tree package if installed
+      yum:
+        name: tree
+        state: absent
+
+    - name: Set hostname to Seneca ID
+      hostname:
+        name: "{{ seneca_id }}"
+
+    - name: Ensure user with Seneca ID exists and is in wheel group
+      user:
+        name: "{{ seneca_id }}"
+        groups: wheel
+        append: yes
+        state: present
+        create_home: yes
+
+    - name: Give user passwordless sudo via sudoers.d
+      copy:
+        dest: "/etc/sudoers.d/{{ seneca_id }}"
+        content: "{{ seneca_id }} ALL=(ALL) NOPASSWD: ALL\n"
+        owner: root
+        group: root
+        mode: '0440'
+
+    - name: Create .ssh directory for new user
+      file:
+        path: "/home/{{ seneca_id }}/.ssh"
+        state: directory
+        owner: "{{ seneca_id }}"
+        group: "{{ seneca_id }}"
+        mode: '0700'
+
+    - name: Copy authorized_keys from student user
+      copy:
+        remote_src: yes
+        src: "/home/student/.ssh/authorized_keys"
+        dest: "/home/{{ seneca_id }}/.ssh/authorized_keys"
+        owner: "{{ seneca_id }}"
+        group: "{{ seneca_id }}"
+        mode: '0600'
+
+    - name: Create ops445 lab directories
+      file:
+        path: "/home/{{ seneca_id }}/ops445/{{ item }}"
+        state: directory
+        owner: "{{ seneca_id }}"
+        group: "{{ seneca_id }}"
+        mode: '0755'
+      loop:
+        - lab1
+        - lab2
+        - lab3
+        - lab4
+        - lab5
+        - lab6
+        - lab7
+        - lab8
